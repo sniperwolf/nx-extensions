@@ -12,7 +12,7 @@ import {
   offsetFromRoot,
   StringChange,
   ChangeType,
-  applyChangesToString,
+  applyChangesToString, GeneratorCallback
 } from '@nrwl/devkit';
 import { Schema } from './schema';
 import { applicationGenerator as nxApplicationGenerator } from '@nrwl/angular/generators';
@@ -21,9 +21,7 @@ import {
   createSourceFile,
   ScriptTarget,
   SourceFile,
-  SyntaxKind,
 } from 'typescript';
-import { findNodes } from '@nrwl/workspace';
 
 export function addImport(
   source: SourceFile,
@@ -48,31 +46,16 @@ export async function applicationGenerator(tree: Tree, options: Schema) {
   const { appsDir } = getWorkspaceLayout(tree);
   const appProjectRoot = normalizePath(`${appsDir}/${appDirectory}`);
 
-  await (
-    await nxApplicationGenerator(tree, {
-      ...options,
-      e2eTestRunner: E2eTestRunner.None,
-    })
-  )();
+
+  const angularAppTask = await nxApplicationGenerator(tree, {
+    ...options,
+    e2eTestRunner: E2eTestRunner.None,
+  });
 
   tree.delete(joinPathFragments(appProjectRoot, 'tsconfig.app.json'));
   tree.delete(joinPathFragments(appProjectRoot, 'tsconfig.spec.json'));
   tree.delete(joinPathFragments(appProjectRoot, 'tsconfig.json'));
   tree.delete(joinPathFragments(appProjectRoot, 'src', 'index.html'));
-  const mainTsFilePath = joinPathFragments(appProjectRoot, 'src', 'main.ts');
-  const source = tree.read(mainTsFilePath, 'utf-8');
-  const mainTsSourceFile = createSourceFile(
-    joinPathFragments(appProjectRoot, 'src', 'main.ts'),
-    source,
-    ScriptTarget.Latest,
-    true
-  );
-  const changes = applyChangesToString(source, [
-    ...addImport(mainTsSourceFile, `import '@angular/compiler';`),
-    ...addImport(mainTsSourceFile, `zone.js';`),
-  ]);
-
-  tree.write(mainTsFilePath, changes);
 
   const projectConfig = readProjectConfiguration(tree, appProjectName);
   updateProjectConfiguration(tree, appProjectName, {
@@ -120,6 +103,8 @@ export async function applicationGenerator(tree: Tree, options: Schema) {
   if (!options.skipFormat) {
     await formatFiles(tree);
   }
+
+  return angularAppTask;
 }
 
 export default applicationGenerator;
