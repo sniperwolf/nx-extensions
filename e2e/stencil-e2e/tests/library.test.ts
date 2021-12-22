@@ -19,9 +19,13 @@ describe('library e2e', () => {
       await runNxCommandAsync(
         `generate @nxext/stencil:add-outputtarget ${plugin} --outputType=react`
       );
+      await runNxCommandAsync(`build ${plugin}`);
 
       expect(() =>
-        checkFilesExist(`libs/${plugin}-react/src/index.ts`)
+        checkFilesExist(
+          `libs/${plugin}-react/src/index.ts`,
+          `libs/${plugin}-react/src/generated/react-component-lib/index.ts`
+        )
       ).not.toThrow();
     });
 
@@ -66,7 +70,7 @@ describe('library e2e', () => {
     });
   });
 
-  it(`should build app with scss`, async () => {
+  it(`should build lib with scss`, async () => {
     const plugin = uniq('lib');
     await runNxCommandAsync(
       `generate @nxext/stencil:lib ${plugin} --style='scss' --buildable --e2eTestRunner='none' --junitTestRunner='none'`
